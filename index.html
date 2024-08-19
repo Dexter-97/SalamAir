@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaflet Map with Esri World Gray Canvas Basemap</title>
+    <title>Salam Air Destination Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         #map {
@@ -22,7 +22,7 @@
             font: 500;
             font-size: larger;
         }
-        #originSelect {
+        #originSelect, #countrySelect {
             padding: 5px;
             font-size: 16px;
         }
@@ -47,6 +47,9 @@
 <body>
     <div id="controls">
         <label for="originSelect">Where would you like to start your journey from?</label>
+        <select id="countrySelect">
+            <option value="All">All Countries</option>
+        </select>
         <select id="originSelect">
             <option value="">--Select Origin--</option>
         </select>
@@ -76,6 +79,7 @@
         var currentLines = [];
         var originMarkers = [];
         var transitMarkers = [];
+        var country_list = [];
         var data;
 
         // Function to create a circle marker with given options
@@ -103,12 +107,22 @@
             currentLines = [];
         }
 
+        function clearOriginMarkers(){
+            if (originMarkers.length > 0){
+                originMarkers.forEach(marker => map.removeLayer(marker.marker));
+            }
+            originMarkers = [];
+        }
+
         // Function to add markers to the map
-        function addMarkers(data) {
-            data.forEach(item => {
+        function addMarkers(d) {
+            clearOriginMarkers();
+            var group = new L.featureGroup();
+            d.forEach(item => {
                 var origin = item.origin;
                 var destinations = item.destinations;
                 var transit = item.transit;
+                var origin_country = item.origin.country;
 
                 // Create origin marker
                 var originMarker = createCircleMarker(origin.lat, origin.lon, {
@@ -131,18 +145,30 @@
                     destinations: destinations,
                     transit: transit
                 });
+                group.addLayer(originMarker);
 
                 // Add origin to the dropdown menu
                 var option = document.createElement('option');
                 option.value = origin.name;
                 option.textContent = origin.name;
                 document.getElementById('originSelect').appendChild(option);
+
+                if (!country_list.includes(origin_country)){
+                    country_list.push(origin_country);
+                    var country = document.createElement('option');
+                    country.value = origin_country;
+                    country.textContent = origin_country;
+                    document.getElementById('countrySelect').appendChild(country);
+                }
             });
+            map.fitBounds(group.getBounds());
+
         }
 
         // Function to update destination markers and lines based on selected origin
         function updateMarkersForSelectedOrigin(originName) {
             clearDestinationMarkers();
+            var group = new L.featureGroup();
             originMarkers.forEach(item => {
                 if (item.marker.getTooltip().getContent().includes(`${originName}`)) {
                     item.marker.setStyle({
@@ -159,9 +185,11 @@
                                 fillColor: '#81b43f', // Destination fill color
                                 radius: 8,
                                 fillOpacity: 1,
-                            });
+                            }).bindTooltip(`${destination.name}`,{permanent:true, direction: 'bottom', className: 'popup'}).openTooltip();
 
                             currentDestinationMarkers.push(destinationMarker);
+                            group.addLayer(destinationMarker);
+                            group.addLayer(item.marker);
 
                             // Draw straight lines between origin and destination
                             var line1 = L.polyline([[item.marker.getLatLng().lat, item.marker.getLatLng().lng], [destination.lat, destination.lon]], {
@@ -190,9 +218,11 @@
                                 fillColor: '#81b43f', // Destination fill color
                                 radius: 8,
                                 fillOpacity: 1,
-                            });
+                            }).bindTooltip(`${destination.name}`,{permanent:true, direction: 'bottom', className: 'popup'}).openTooltip();
 
                             currentDestinationMarkers.push(destinationMarker);
+                            group.addLayer(destinationMarker);
+                            group.addLayer(item.marker);
 
                             // Draw straight lines between origin, transit, and destination
                             var line1 = L.polyline([[item.marker.getLatLng().lat, item.marker.getLatLng().lng], [item.transit.lat, item.transit.lon]], {
@@ -219,6 +249,7 @@
 
                         });
                     }
+                    map.fitBounds(group.getBounds());
                 } else {
                     item.marker.setStyle({
                         color: '#A7A9AC', // Pantone 877C
@@ -245,6 +276,27 @@
                         radius: 8
                     });
                 });
+            }
+        });
+
+        //show origins based on country selection
+        document.getElementById('countrySelect').addEventListener('change', function(){
+            var selectedCountry = this.value;
+            console.log(selectedCountry);
+            clearDestinationMarkers();
+            if (selectedCountry == 'All'){
+                addMarkers(data);
+            }
+            else{
+                var selectedData = [];
+                var originList = document.getElementById('originSelect');
+                originList.innerHTML = "<option value=''>--Select Origin--</option>";
+                data.forEach(item => {
+                    if (item.origin.country == selectedCountry){
+                        selectedData.push(item);
+                    }
+                });
+                addMarkers(selectedData);
             }
         });
 
