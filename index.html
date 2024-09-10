@@ -4,44 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salam Air Destination Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        #map {
-            height: 90vh;
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
             width: 100%;
+            overflow: hidden;
         }
+
+        #map {
+            height: 95vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
         #controls {
-            height: 10vh;
-            width: 100%;
+            height: 5vh;
+            width: 100vw;
             display: flex;
             align-items: center;
             justify-content: center;
             background-color: #d6e028;
             color: white;
             font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-            font: 500;
+            font-weight: 500;
             font-size: larger;
+            margin: 0;
+            padding: 0;
         }
+
         #originSelect, #countrySelect {
+            margin-left: 3vh;
             padding: 5px;
             font-size: 16px;
         }
-        .leaflet-tooltip-top:before, 
-        .leaflet-tooltip-bottom:before, 
-        .leaflet-tooltip-left:before, 
-        .leaflet-tooltip-right:before {
-            border: none !important;
-        }
-        .popup {
-            background: rgba(0, 0, 0, 0) !important;
-            border: none !important;
-            font-size: 12px;
-            font-weight: 800;
-            color: #00acca;
-            box-shadow: none !important;
-        }
-
-
     </style>
 </head>
 <body>
@@ -56,283 +54,362 @@
     </div>
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCDLlCmaakvMhnPzxs3yQOd7Zd2OcWtk-0&libraries=core"></script>
     <script>
-        // Initialize the map and set its view to Muscat, Oman
-        var map = L.map('map').setView([23.5880, 58.3829], 4);
-
-        // Add Esri World Gray Canvas basemap
-        var Esri_WorldGrayCanvas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
-            maxZoom: 8,
-            minZoom: 4
-        });
-
-        // Add the basemap to the map
-        Esri_WorldGrayCanvas.addTo(map);
-
-        map.on('zoomend', function(evt) {
-            hideOverlappingTooltips();
-        });
-
+        var map;
+        var data;
+        var originMarkers = [];
         var currentDestinationMarkers = [];
         var currentLines = [];
-        var originMarkers = [];
-        var transitMarkers = [];
-        var country_list = [];
-        var data;
+        var countryList = [];
+        var transitMarker;
 
-        // Function to create a circle marker with given options
-        function createCircleMarker(lat, lon, options) {
-            return L.circleMarker([lat, lon], options).addTo(map);
-        }
+        const lineSymbol = {
+            path: "M 0,-1.25 0,2.25",
+            strokeColor: '#00acca',
+            strokeOpacity: 2,
+            strokeWeight: 2.5,
+            scale: 4,
+        };
 
-        // Function to create a square marker
-        function createSquareMarker(lat, lon, options) {
-            return L.marker([lat, lon], {
-                icon: L.divIcon({
-                    className: 'custom-square-marker',
-                    html: `<div style="width: 18px; height: 18px; background-color: ${options.fillColor}; border: 2px solid ${options.color};"></div>`
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 23.5880, lng: 58.3829 },
+                zoom: 4,
+                maxZoom:6,
+                mapId: '6678f7942ed1b3c8',
+                mapTypeControl: false // This disables the satellite and map type selection
+            });
+
+            fetch('output.json')
+                .then(response => response.json())
+                .then(jsonData => {
+                    data = jsonData;
+                    addMarkers(data);
                 })
-            }).addTo(map);
+                .catch(error => console.error('Error fetching JSON data:', error));
         }
 
-        // Function to clear existing destination markers and lines
-        function clearDestinationMarkers() {
-            currentDestinationMarkers.forEach(marker => map.removeLayer(marker));
-            currentDestinationMarkers = [];
-            transitMarkers.forEach(marker => map.removeLayer(marker));
-            transitMarkers = [];
-            currentLines.forEach(line => map.removeLayer(line));
-            currentLines = [];
+        function createCircleMarkerOrigin(lat, lng, options) {
+            return new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: options.radius,
+                    fillColor: options.fillColor,
+                    fillOpacity: options.fillOpacity,
+                    strokeWeight: 2,
+                    strokeColor: options.color,
+                    labelOrigin: new google.maps.Point(3, -1.5),
+                },
+                title: options.title,
+                label: {
+                    text: options.title,
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    // fontFamily: '"Courier New", Courier,Monospace',
+                    color: '#00506b'
+                },
+                
+            });
         }
 
-        function clearOriginMarkers(){
-            if (originMarkers.length > 0){
-                originMarkers.forEach(marker => map.removeLayer(marker.marker));
-            }
-            originMarkers = [];
+        function createCircleMarkerDes(lat, lng, options) {
+            return new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: options.radius,
+                    fillColor: options.fillColor,
+                    fillOpacity: options.fillOpacity,
+                    strokeWeight: 2,
+                    strokeColor: options.color,
+                    labelOrigin: new google.maps.Point(3, -1.5),
+                },
+                title: options.title,
+                label: {
+                    text: options.title,
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    // fontFamily: '"Courier New", Courier,Monospace',
+                    color: '#00506b'
+                },
+            });
         }
 
-        // Function to add markers to the map
+
+        function createSquareMarker(lat, lng, options) {
+            return new google.maps.Marker({
+                position: { lat: lat, lng: lng },
+                map: map,
+                icon: {
+                    path: 'M -1,-1 1,-1 1,1 -1,1 z',
+                    fillColor: options.fillColor,
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: options.color,
+                    scale: 10
+                },
+            });
+        }
+
         function addMarkers(d) {
             clearOriginMarkers();
-            var group = new L.featureGroup();
             d.forEach(item => {
                 var origin = item.origin;
-                var destinations = item.destinations;
-                var transit = item.transit;
-                var origin_country = item.origin.country;
-
-                // Create origin marker
-                var originMarker = createCircleMarker(origin.lat, origin.lon, {
-                    color: '#A7A9AC', // Pantone 877C
-                    fillColor: '#A7A9AC',
+                var originMarker = createCircleMarkerOrigin(origin.lat, origin.lon, {
+                    color: '#A7A9AC',
+                    fillColor: '#d6e028',
                     fillOpacity: 1,
-                    radius: 8
-                }).bindTooltip(`${origin.name}`,{permanent:true, direction: 'bottom', className: 'popup'}).openTooltip();
-
-                hideOverlappingTooltips();
-
-                originMarker.on('click', function() {
-                    var originselector = document.getElementById('originSelect');
-                    originselector.value = origin.name;
-                    updateMarkersForSelectedOrigin(origin.name);
+                    strokeWeight: 2,
+                    strokeColor: 'white',
+                    radius: 8,
+                    title: origin.name
                 });
 
                 originMarkers.push({
                     marker: originMarker,
-                    destinations: destinations,
-                    transit: transit
+                    destinations: item.destinations,
+                    transit: item.transit
                 });
-                group.addLayer(originMarker);
 
-                // Add origin to the dropdown menu
+                originMarker.addListener('click', function () {
+                    updateMarkersForSelectedOrigin(origin.name);
+                    document.getElementById('originSelect').value = origin.name;
+                });
+
+                // Add origin to dropdown
                 var option = document.createElement('option');
                 option.value = origin.name;
                 option.textContent = origin.name;
                 document.getElementById('originSelect').appendChild(option);
 
-                if (!country_list.includes(origin_country)){
-                    country_list.push(origin_country);
-                    var country = document.createElement('option');
-                    country.value = origin_country;
-                    country.textContent = origin_country;
-                    document.getElementById('countrySelect').appendChild(country);
+                // Populate country dropdown
+                if (!countryList.includes(origin.country)) {
+                    countryList.push(origin.country);
+                    var countryOption = document.createElement('option');
+                    countryOption.value = origin.country;
+                    countryOption.textContent = origin.country;
+                    document.getElementById('countrySelect').appendChild(countryOption);
                 }
             });
-            map.fitBounds(group.getBounds());
-
         }
 
-        // Function to update destination markers and lines based on selected origin
+        function clearDestinationMarkers() {
+            currentDestinationMarkers.forEach(marker => marker.setMap(null));
+            currentDestinationMarkers = [];
+            if(transitMarker !== undefined){
+                transitMarker.setMap(null);
+            }
+            currentLines.forEach(line => line.setMap(null));
+            currentLines = [];
+        }
+
+        function clearOriginMarkers() {
+            originMarkers.forEach(item => item.marker.setMap(null));
+            originMarkers = [];
+        }
+
+        function getBezierPath(start, end, control) {
+            var points = [];
+            var steps = 50; // Number of steps for the curve; the more steps, the smoother the curve.
+
+            for (var t = 0; t <= 1; t += 1 / steps) {
+                var x = (1 - t) * (1 - t) * start.lng + 2 * (1 - t) * t * control.lng + t * t * end.lng;
+                var y = (1 - t) * (1 - t) * start.lat + 2 * (1 - t) * t * control.lat + t * t * end.lat;
+                points.push({ lat: y, lng: x });
+            }
+
+            return points;
+        }
+
+        // Example control point for the arc, you can adjust it for different arc shapes
+        function getControlPoint(start, end) {
+            var controlLat = (start.lat + end.lat) / 2 + 0.75; // Slightly north for upward arc
+            var controlLng = (start.lng + end.lng) / 2 + 0.75; // Slightly east for a curve
+            return { lat: controlLat, lng: controlLng };
+        }
+
         function updateMarkersForSelectedOrigin(originName) {
             clearDestinationMarkers();
-            var group = new L.featureGroup();
+
             originMarkers.forEach(item => {
-                if (item.marker.getTooltip().getContent().includes(`${originName}`)) {
-                    item.marker.setStyle({
-                        color: '#FFFFFF', // White stroke
-                        fillColor: '#00acca', // Origin fill color
+                if (item.marker.getTitle() === originName) {
+                    item.marker.setIcon({
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#00acca',
                         fillOpacity: 1,
-                        radius: 12
+                        strokeWeight: 2,
+                        strokeColor: "#FFFFFF",
+                        labelOrigin: new google.maps.Point(3, -1.5),
                     });
 
+                    // Handling destinations
                     if (item.transit.name === "No Transit") {
                         item.destinations.forEach(destination => {
-                            var destinationMarker = createCircleMarker(destination.lat, destination.lon, {
-                                color: '#FFFFFF', // White stroke
-                                fillColor: '#81b43f', // Destination fill color
+                            var destinationMarker = createCircleMarkerDes(destination.lat, destination.lon, {
+                                color: '#FFFFFF',
+                                fillColor: '#81b43f',
                                 radius: 8,
                                 fillOpacity: 1,
-                            }).bindTooltip(`${destination.name}`,{permanent:true, direction: 'bottom', className: 'popup'}).openTooltip();
+                                title: destination.name
+                            });
 
                             currentDestinationMarkers.push(destinationMarker);
-                            group.addLayer(destinationMarker);
-                            group.addLayer(item.marker);
 
-                            // Draw straight lines between origin and destination
-                            var line1 = L.polyline([[item.marker.getLatLng().lat, item.marker.getLatLng().lng], [destination.lat, destination.lon]], {
-                                color: '#81b43f', // Destination color
-                                weight: 2
-                            }).addTo(map);
-                            currentLines.push(line1);
+                            var start = { lat: item.marker.getPosition().lat(), lng: item.marker.getPosition().lng() };
+                            var transit = { lat: item.transit.lat, lng: item.transit.lon };
+                            var destination = { lat: destination.lat, lng: destination.lon };
 
-                            destinationMarker.on('click', function() {
-                                console.log(destination.name);
+                            var controlPoint1 = getControlPoint(start, transit);
+                            var controlPoint2 = getControlPoint(transit, destination);
+
+                            var path1 = getBezierPath(start, transit, controlPoint1);
+                            var path2 = getBezierPath(transit, destination, controlPoint2);
+
+                            var line = new google.maps.Polyline({
+                                path: path1,
+                                strokeOpacity: 0,
+                                strokeWeight: 0.75,
+                                strokeColor: 'white',
+                                icons: [
+                                    {
+                                        icon: lineSymbol,
+                                        offset: "0",
+                                        repeat: "20px",
+                                    },
+                                ],
+                                map: map
+                            });
+
+                            currentLines.push(line);
+
+                            destinationMarker.addListener('click', function () {
                                 updateMarkersForSelectedOrigin(destination.name);
                             });
                         });
                     } else {
-                        // Create transit marker
-                        var transitMarker = createSquareMarker(item.transit.lat, item.transit.lon, {
-                            color: '#FFFFFF', // White stroke
+                        // Handling transit
+                        transitMarker = createSquareMarker(item.transit.lat, item.transit.lon, {
+                            color: '#FFFFFF',
                             fillColor: '#00acca'
                         });
 
-                        transitMarkers.push(transitMarker);
-
                         item.destinations.forEach(destination => {
-                            var destinationMarker = createCircleMarker(destination.lat, destination.lon, {
-                                color: '#FFFFFF', // White stroke
-                                fillColor: '#81b43f', // Destination fill color
+                            var destinationMarker = createCircleMarkerDes(destination.lat, destination.lon, {
+                                color: '#FFFFFF',
+                                fillColor: '#81b43f',
                                 radius: 8,
                                 fillOpacity: 1,
-                            }).bindTooltip(`${destination.name}`,{permanent:true, direction: 'bottom', className: 'popup'}).openTooltip();
+                                title: destination.name
+                            });
 
                             currentDestinationMarkers.push(destinationMarker);
-                            group.addLayer(destinationMarker);
-                            group.addLayer(item.marker);
 
-                            // Draw straight lines between origin, transit, and destination
-                            var line1 = L.polyline([[item.marker.getLatLng().lat, item.marker.getLatLng().lng], [item.transit.lat, item.transit.lon]], {
-                                color: '#81b43f', // Destination color
-                                weight: 2
-                            }).addTo(map);
-                            currentLines.push(line1);
 
-                            var line2 = L.polyline([[item.transit.lat, item.transit.lon], [destination.lat, destination.lon]], {
-                                color: '#81b43f', // Destination color
-                                weight: 2
-                            }).addTo(map);
-                            currentLines.push(line2);
+                            var start = { lat: item.marker.getPosition().lat(), lng: item.marker.getPosition().lng() };
+                            var transit = { lat: item.transit.lat, lng: item.transit.lon };
+                            var destination = { lat: destination.lat, lng: destination.lon };
 
-                            destinationMarker.on('click', function() {
-                                console.log(destination.name);
+                            var controlPoint1 = getControlPoint(start, transit);
+                            var controlPoint2 = getControlPoint(transit, destination);
+
+                            var path1 = getBezierPath(start, transit, controlPoint1);
+                            var path2 = getBezierPath(transit, destination, controlPoint2);
+
+                            var line1 = new google.maps.Polyline({
+                                path: path1,
+                                strokeOpacity: 0.2,
+                                strokeWeight: 0.75,
+                                strokeColor: 'white',
+                                icons: [
+                                    {
+                                        icon: lineSymbol,
+                                        offset: "0",
+                                        repeat: "20px",
+                                    },
+                                ],
+                                map: map
+                            });
+
+                            var line2 = new google.maps.Polyline({
+                                path: path2,
+                                strokeOpacity: 0.2,
+                                strokeWeight: 0.75,
+                                strokeColor: 'white',
+                                icons: [
+                                    {
+                                        icon: lineSymbol,
+                                        offset: "0",
+                                        repeat: "20px",
+                                    },
+                                ],
+                                map: map
+                            });
+
+                            currentLines.push(line1, line2);
+
+                            destinationMarker.addListener('click', function () {
                                 updateMarkersForSelectedOrigin(destination.name);
                             });
 
-                            transitMarker.on('click', function() {
-                                console.log(destination.name);
+                            transitMarker.addListener('click', function () {
                                 updateMarkersForSelectedOrigin(destination.name);
                             });
-
                         });
                     }
-                    map.fitBounds(group.getBounds());
-                } else {
-                    item.marker.setStyle({
-                        color: '#A7A9AC', // Pantone 877C
-                        fillColor: '#A7A9AC',
+                } 
+                else {
+                    item.marker.setIcon({
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: '#d6e028',
                         fillOpacity: 1,
-                        radius: 8
+                        strokeWeight: 2,
+                        strokeColor: 'white',
+                        labelOrigin: new google.maps.Point(3, -1.5),
                     });
                 }
             });
         }
 
-        // Add event listener for the dropdown menu
-        document.getElementById('originSelect').addEventListener('change', function() {
+        document.getElementById('originSelect').addEventListener('change', function () {
             var selectedOrigin = this.value;
             if (selectedOrigin) {
                 updateMarkersForSelectedOrigin(selectedOrigin);
             } else {
                 clearDestinationMarkers();
                 originMarkers.forEach(item => {
-                    item.marker.setStyle({
-                        color: '#A7A9AC', // Pantone 877C
+                    item.marker.setIcon({
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
                         fillColor: '#A7A9AC',
                         fillOpacity: 1,
-                        radius: 8
+                        strokeWeight: 2,
+                        strokeColor: '#A7A9AC',
                     });
                 });
             }
         });
 
-        //show origins based on country selection
-        document.getElementById('countrySelect').addEventListener('change', function(){
+        document.getElementById('countrySelect').addEventListener('change', function () {
             var selectedCountry = this.value;
-            console.log(selectedCountry);
             clearDestinationMarkers();
-            if (selectedCountry == 'All'){
+            clearOriginMarkers();
+            if (selectedCountry === 'All') {
                 addMarkers(data);
-            }
-            else{
-                var selectedData = [];
-                var originList = document.getElementById('originSelect');
-                originList.innerHTML = "<option value=''>--Select Origin--</option>";
-                data.forEach(item => {
-                    if (item.origin.country == selectedCountry){
-                        selectedData.push(item);
-                    }
-                });
-                addMarkers(selectedData);
+            } else {
+                var filteredData = data.filter(item => item.origin.country === selectedCountry);
+                document.getElementById('originSelect').innerHTML = "<option value=''>--Select Origin--</option>";
+                addMarkers(filteredData);
             }
         });
 
-        function overlap(rect1, rect2) {
-        return(!(rect1.right < rect2.left || 
-                rect1.left > rect2.right || 
-                rect1.bottom < rect2.top || 
-                rect1.top > rect2.bottom));
-        }
-
-        function hideOverlappingTooltips() {
-            var rects = [];
-            var tooltips = document.getElementsByClassName('popup');
-            for (var i = 0; i < tooltips.length; i++) {
-                tooltips[i].style.visibility = '';
-                rects[i] = tooltips[i].getBoundingClientRect();
-            }
-            for (var i = 0; i < tooltips.length; i++) {
-                if (tooltips[i].style.visibility != 'hidden') {
-                for (var j = i + 1; j < tooltips.length; j++) {
-                    if (overlap(rects[i], rects[j])) tooltips[j].style.visibility = 'hidden';
-                }
-                }
-            }
-        }
-
-
-
-        // Fetch JSON data and add markers to the map
-        fetch('output.json')
-            .then(response => response.json())
-            .then(jsonData => {
-                data = jsonData;
-                addMarkers(data);
-            })
-            .catch(error => console.error('Error fetching JSON data:', error));
+        // Initialize map after the page loads
+        window.onload = initMap;
     </script>
 </body>
 </html>
