@@ -1,0 +1,158 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": { "name": "Albania" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [20.1683, 41.1533]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Azerbaijan" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [47.5769, 40.1431]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Bahrain" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [50.5577, 26.0667]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Bangladesh" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [90.3563, 23.6850]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Kazakhstan" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [66.9237, 48.0196]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Lebanon" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [35.8623, 33.8547]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Iraq" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [43.6793, 33.2232]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "India" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [78.9629, 20.5937]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Sri Lanka" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [80.7718, 7.8731]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Saudi Arabia" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [45.0792, 23.8859]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Qatar" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [51.1839, 25.3548]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Oman" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [55.9233, 21.4735]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "U.A.E" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [53.8478, 23.4241]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Thailand" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [100.9925, 15.8700]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Iran" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [53.6880, 32.4279]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Pakistan" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [69.3451, 30.3753]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Kuwait" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [47.4818, 29.3117]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Turkey" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [35.2433, 38.9637]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": { "name": "Egypt" },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [30.8025, 26.8206]
+        }
+      }
+    ]
+  }
+  

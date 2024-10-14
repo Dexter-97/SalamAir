@@ -40,6 +40,19 @@
             padding: 5px;
             font-size: 16px;
         }
+
+        /* Custom styles for the country labels */
+        .country-label {
+            position: absolute;
+            color: #a2d362;
+            background-color: rgba(255, 255, 255, 0);
+            font-size: 14px;
+            /* font-weight: bold; */
+            padding: 2px;
+            border-radius: 3px;
+            white-space: nowrap;
+            /* transform: translate(-50%, -100%); */
+        }
     </style>
 </head>
 <body>
@@ -58,6 +71,7 @@
     <script>
         var map;
         var data;
+        var countriesData;
         var originMarkers = [];
         var currentDestinationMarkers = [];
         var currentLines = [];
@@ -77,17 +91,90 @@
                 center: { lat: 23.5880, lng: 58.3829 },
                 zoom: 4,
                 maxZoom:6,
+                minZoom:4,
                 mapId: '6678f7942ed1b3c8',
                 mapTypeControl: false // This disables the satellite and map type selection
             });
 
-            fetch('output.json')
+            fetch('countries.json')
+            .then(response => response.json())
+            .then(jsonData => {
+                countriesData = jsonData;
+                console.log(countriesData);
+
+                // Loop through the features and create labels
+                countriesData.features.forEach((country) => {
+                const countryName = country.properties.name;
+                const coordinates = country.geometry.coordinates;
+
+                // Create a custom overlay for each country label
+                const label = new CustomLabel(
+                    { lat: coordinates[1], lng: coordinates[0] }, 
+                    countryName, 
+                    map
+                );
+                });
+            })
+            .catch(error => console.error('Error fetching JSON data:', error));
+
+            fetch('destinations.json')
                 .then(response => response.json())
                 .then(jsonData => {
                     data = jsonData;
                     addMarkers(data);
                 })
                 .catch(error => console.error('Error fetching JSON data:', error));
+            
+
+        }
+
+        // Define the custom label class
+        class CustomLabel extends google.maps.OverlayView {
+            constructor(position, text, map) {
+            super();
+            this.position = position;
+            this.text = text;
+            this.map = map;
+            this.div = null;
+            this.setMap(map);  // Add this overlay to the map
+            }
+
+            onAdd() {
+            const div = document.createElement('div');
+            div.className = 'country-label';
+            div.textContent = this.text;
+            this.div = div;
+
+            // Add the label to the overlay layer
+            const panes = this.getPanes();
+            panes.overlayLayer.appendChild(div);
+            }
+
+            draw() {
+            const overlayProjection = this.getProjection();
+            const position = overlayProjection.fromLatLngToDivPixel(this.position);
+
+            // Position the label div
+            if (this.div) {
+                this.div.style.left = position.x + 'px';
+                this.div.style.top = position.y + 'px';
+
+                // Get the actual dimensions of the div
+                const divWidth = this.div.offsetWidth;
+                const divHeight = this.div.offsetHeight;
+
+                // Reposition the div by subtracting half of the width and height to center it
+                this.div.style.left = (position.x - divWidth / 2) + 'px';
+                this.div.style.top = (position.y - divHeight / 2) + 'px';
+            }
+            }
+
+            onRemove() {
+            if (this.div) {
+                this.div.parentNode.removeChild(this.div);
+                this.div = null;
+            }
+            }
         }
 
         function createCircleMarkerOrigin(lat, lng, options) {
@@ -99,18 +186,18 @@
                     scale: options.radius,
                     fillColor: options.fillColor,
                     fillOpacity: options.fillOpacity,
-                    strokeWeight: 2,
+                    strokeWeight: 0,
                     strokeColor: options.color,
-                    labelOrigin: new google.maps.Point(3, -1.5),
+                    // labelOrigin: new google.maps.Point(3, -1.5),
                 },
                 title: options.title,
-                label: {
-                    text: options.title,
-                    fontWeight: 'bold',
-                    fontSize: '12px',
-                    // fontFamily: '"Courier New", Courier,Monospace',
-                    color: '#00506b'
-                },
+                // label: {
+                //     text: options.title,
+                //     fontWeight: 'bold',
+                //     fontSize: '12px',
+                //     // fontFamily: '"Courier New", Courier,Monospace',
+                //     color: '#00506b'
+                // },
                 
             });
         }
@@ -129,13 +216,13 @@
                     labelOrigin: new google.maps.Point(3, -1.5),
                 },
                 title: options.title,
-                label: {
-                    text: options.title,
-                    fontWeight: 'bold',
-                    fontSize: '12px',
-                    // fontFamily: '"Courier New", Courier,Monospace',
-                    color: '#00506b'
-                },
+                // label: {
+                //     text: options.title,
+                //     fontWeight: 'bold',
+                //     fontSize: '12px',
+                //     // fontFamily: '"Courier New", Courier,Monospace',
+                //     color: '#00506b'
+                // },
             });
         }
 
@@ -148,9 +235,9 @@
                     path: 'M -1,-1 1,-1 1,1 -1,1 z',
                     fillColor: options.fillColor,
                     fillOpacity: 1,
-                    strokeWeight: 2,
+                    strokeWeight: 0.5,
                     strokeColor: options.color,
-                    scale: 10
+                    scale: 8
                 },
             });
         }
@@ -160,12 +247,12 @@
             d.forEach(item => {
                 var origin = item.origin;
                 var originMarker = createCircleMarkerOrigin(origin.lat, origin.lon, {
-                    color: '#A7A9AC',
-                    fillColor: '#d6e028',
+                    // color: '#A7A9AC',
+                    fillColor: '#ffffff',
                     fillOpacity: 1,
-                    strokeWeight: 2,
+                    // strokeWeight: 2,
                     strokeColor: 'white',
-                    radius: 8,
+                    radius: 4,
                     title: origin.name
                 });
 
@@ -214,7 +301,7 @@
 
         function getBezierPath(start, end, control) {
             var points = [];
-            var steps = 50; // Number of steps for the curve; the more steps, the smoother the curve.
+            var steps = 80; // Number of steps for the curve; the more steps, the smoother the curve.
 
             for (var t = 0; t <= 1; t += 1 / steps) {
                 var x = (1 - t) * (1 - t) * start.lng + 2 * (1 - t) * t * control.lng + t * t * end.lng;
@@ -239,21 +326,22 @@
                 if (item.marker.getTitle() === originName) {
                     item.marker.setIcon({
                         path: google.maps.SymbolPath.CIRCLE,
-                        scale: 12,
-                        fillColor: '#00acca',
+                        scale: 8,
+                        fillColor: '#ffffff',
                         fillOpacity: 1,
-                        strokeWeight: 2,
-                        strokeColor: "#FFFFFF",
-                        labelOrigin: new google.maps.Point(3, -1.5),
+                        strokeWeight: 0.5,
+                        strokeColor: "#ffffff",
+                        // labelOrigin: new google.maps.Point(3, -1.5),
                     });
 
                     // Handling destinations
                     if (item.transit.name === "No Transit") {
+                        console.log("Coming Here");
                         item.destinations.forEach(destination => {
                             var destinationMarker = createCircleMarkerDes(destination.lat, destination.lon, {
-                                color: '#FFFFFF',
-                                fillColor: '#81b43f',
-                                radius: 8,
+                                color: '#00506b',
+                                fillColor: '#00506b',
+                                radius: 6,
                                 fillOpacity: 1,
                                 title: destination.name
                             });
@@ -261,27 +349,26 @@
                             currentDestinationMarkers.push(destinationMarker);
 
                             var start = { lat: item.marker.getPosition().lat(), lng: item.marker.getPosition().lng() };
-                            var transit = { lat: item.transit.lat, lng: item.transit.lon };
+                            // var transit = { lat: item.transit.lat, lng: item.transit.lon };
                             var destination = { lat: destination.lat, lng: destination.lon };
 
-                            var controlPoint1 = getControlPoint(start, transit);
-                            var controlPoint2 = getControlPoint(transit, destination);
+                            var controlPoint1 = getControlPoint(start, destination);
+                            // var controlPoint2 = getControlPoint(transit, destination);
 
-                            var path1 = getBezierPath(start, transit, controlPoint1);
-                            var path2 = getBezierPath(transit, destination, controlPoint2);
+                            var path1 = getBezierPath(start, destination, controlPoint1);
 
                             var line = new google.maps.Polyline({
                                 path: path1,
-                                strokeOpacity: 0,
-                                strokeWeight: 0.75,
-                                strokeColor: 'white',
-                                icons: [
-                                    {
-                                        icon: lineSymbol,
-                                        offset: "0",
-                                        repeat: "20px",
-                                    },
-                                ],
+                                // strokeOpacity: 0,
+                                strokeWeight: 1.75,
+                                strokeColor: '#00acca',
+                                // icons: [
+                                //     {
+                                //         icon: lineSymbol,
+                                //         offset: "0",
+                                //         repeat: "20px",
+                                //     },
+                                // ],
                                 map: map
                             });
 
@@ -294,15 +381,17 @@
                     } else {
                         // Handling transit
                         transitMarker = createSquareMarker(item.transit.lat, item.transit.lon, {
-                            color: '#FFFFFF',
-                            fillColor: '#00acca'
+                            color: ' #ffffff',
+                            // fillColor: '#00acca'
+                            fillColor: ' #ffffff',
+                            title: item.transit.name,
                         });
 
                         item.destinations.forEach(destination => {
                             var destinationMarker = createCircleMarkerDes(destination.lat, destination.lon, {
-                                color: '#FFFFFF',
-                                fillColor: '#81b43f',
-                                radius: 8,
+                                color: '#00506b',
+                                fillColor: '#00506b',
+                                radius: 6,
                                 fillOpacity: 1,
                                 title: destination.name
                             });
@@ -322,31 +411,31 @@
 
                             var line1 = new google.maps.Polyline({
                                 path: path1,
-                                strokeOpacity: 0.2,
-                                strokeWeight: 0.75,
+                                // strokeOpacity: 0.2,
+                                strokeWeight: 1.25,
                                 strokeColor: 'white',
-                                icons: [
-                                    {
-                                        icon: lineSymbol,
-                                        offset: "0",
-                                        repeat: "20px",
-                                    },
-                                ],
+                                // icons: [
+                                //     {
+                                //         icon: lineSymbol,
+                                //         offset: "0",
+                                //         repeat: "20px",
+                                //     },
+                                // ],
                                 map: map
                             });
 
                             var line2 = new google.maps.Polyline({
                                 path: path2,
-                                strokeOpacity: 0.2,
-                                strokeWeight: 0.75,
-                                strokeColor: 'white',
-                                icons: [
-                                    {
-                                        icon: lineSymbol,
-                                        offset: "0",
-                                        repeat: "20px",
-                                    },
-                                ],
+                                // strokeOpacity: 0.75,
+                                strokeWeight: 1.75,
+                                strokeColor: '#00acca',
+                                // icons: [
+                                //     {
+                                //         icon: lineSymbol,
+                                //         offset: "0",
+                                //         repeat: "20px",
+                                //     },
+                                // ],
                                 map: map
                             });
 
@@ -365,12 +454,12 @@
                 else {
                     item.marker.setIcon({
                         path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: '#d6e028',
+                        scale: 4,
+                        fillColor: '#ffffff',
                         fillOpacity: 1,
                         strokeWeight: 2,
                         strokeColor: 'white',
-                        labelOrigin: new google.maps.Point(3, -1.5),
+                        // labelOrigin: new google.maps.Point(3, -1.5),
                     });
                 }
             });
@@ -385,11 +474,11 @@
                 originMarkers.forEach(item => {
                     item.marker.setIcon({
                         path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: '#A7A9AC',
+                        scale: 4,
+                        fillColor: '#ffffff',
                         fillOpacity: 1,
                         strokeWeight: 2,
-                        strokeColor: '#A7A9AC',
+                        strokeColor: 'white',
                     });
                 });
             }
@@ -411,5 +500,6 @@
         // Initialize map after the page loads
         window.onload = initMap;
     </script>
+    
 </body>
 </html>
